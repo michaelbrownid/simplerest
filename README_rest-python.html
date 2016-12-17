@@ -181,11 +181,27 @@ git push -u origin master
 
 ----------------
 
-Try on another machine with nothing installed:
+Try from home directory:
 
->>> import foo
-Traceback (most recent call last):
-File "<stdin>", line 1, in <module>
-      ImportError: No module named foo
 
-> pip install git+https://github.com/michaelbrownid/pythoninstalltest.git
+python -m simplerest.server
+
+/usr/bin/python: No module named simplerest
+
+
+pip install git+https://github.com/michaelbrownid/simplerest.git
+
+Collecting git+https://github.com/michaelbrownid/simplerest.git
+  Cloning https://github.com/michaelbrownid/simplerest.git to /tmp/pip-10WZ0d-build
+Installing collected packages: simplerest
+  Running setup.py install for simplerest ... [?25ldone
+[?25hSuccessfully installed simplerest
+
+python -m simplerest.server
+
+args {'p': 8080, 'd': './', 'h': '192.168.11.16'}
+Starting server, use <Ctrl-C> to stop
+
+YAY!
+
+================================
