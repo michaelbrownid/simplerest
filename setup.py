@@ -4,5 +4,6 @@ setup(name='simplerest',
       packages=['simplerest'],
       author="michael p.s. brown",
       description="REST server in python",
-      long_description=('See README_rest-python.html from source for full description')
+      long_description=('See README_rest-python.html from source for full description'),
+      url="https://github.com/michaelbrownid/simplerest"
       )
