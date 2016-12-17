@@ -1,0 +1,191 @@
+<pre>
+
+goal: make python rest server as basis for implementing web services
+
+I want a multi-threaded python web server to serve rest services. I
+want multi-threaded for the purpose of possible long-polling in which
+one thread will wait for content while others can continue to serve.
+
+================================
+
+I want an easy rest interface.
+
+NOTE: I used emacs restclient.el but it simply using CURL is more
+straightforward.
+
+https://github.com/pashky/restclient.el
+
+git clone https://github.com/pashky/restclient.el.git
+
+(load-file "/home/mpsb/Desktop/rest-python/restclient.el/restclient.el")
+
+###GET http://httpbin.org/ip
+M-x restclient-http-send-current-stay-in-window
+
+M-x restclient-http-send-current-raw
+
+Works!
+
+================================
+
+I did some similar README_web-command.html. copy here to
+"restPython.py" and update GET/POST from
+/media/datastore/storestudio/workspace2015/webfilemanager/webfilemanager.py
+
+python -m simplerest.server
+
+----
+GET http://localhost:8080/service?foo=bar
+###
+
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.3 Python/2.7.6
+Date: Fri, 16 Sep 2016 17:53:57 GMT
+
+default response
+['path:/service?foo=bar', 'form:["foo=[\'bar\'];"]', "environ:{'QUERY_STRING': 'foo=bar', 'REQUEST_METHOD': 'GET'}"]
+
+----
+POST http://localhost:8080/xxx
+
+foo2=bar2&blah=zap
+###
+
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.3 Python/2.7.6
+Date: Fri, 16 Sep 2016 17:54:11 GMT
+
+default response
+['path:/xxx', "form:['blah=zap;', 'foo2=bar2;']", 'environ:{}']
+
+################################
+
+Now look at getting key/value pairs.
+
+----
+GET http://localhost:8080/getkey?key=foo
+###
+
+Trying to get key that does not exist
+"error mykey not in keystate"
+
+----
+GET http://localhost:8080/setkey?key=foo;value=bar
+###
+
+Setting the key
+"done setkey foo bar"
+
+----
+GET http://localhost:8080/getkey?key=foo
+###
+
+Getting a new key
+"getkey foo = bar"
+
+----
+GET http://localhost:8080/getkey?key=foo
+###
+
+Getting an "old" key blocks. server writes "getkey sleeping..." until
+key is new by setkey... and then responds (by setkey below)
+
+"getkey foo = zapzap"
+
+----
+GET http://localhost:8080/getkey?key=foo;immediate=true
+###
+
+Immediate get the key even though the other get is still blocked.
+"getkey foo = bar"
+
+----
+GET http://localhost:8080/setkey?key=foo;value=zapzap
+###
+
+setting the key to a new value. any blocked get then responds.
+"done setkey foo zapzap"
+
+################################
+
+Now do updating of specific functions:
+
+import restPython
+class myHandler(restPython.RestHandler):
+  def action_myfunction( self ):
+    self.message = "myfunction here!"
+server = restPython.ThreadedHTTPServer(('localhost', 8080), myHandler)
+print('Starting server, use <Ctrl-C> to stop')
+server.serve_forever()
+
+GET http://localhost:8080/myfunction
+###
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.3 Python/2.7.6
+Date: Wed, 28 Sep 2016 23:09:59 GMT
+
+myfunction here!
+
+################################
+
+Add general file serving. This will allow me to send the
+"Access-Control-Allow-Origin: *" header so that xhr can access
+anything rather than the origininating page (CORS).
+
+GET http://192.168.11.16:8080/service?foo=bar
+####
+
+GET http://192.168.11.16:8080/README_rest-python.html
+####
+
+GET http://192.168.11.16:8080/
+####
+
+################################################################
+
+Package it up so I can call it
+
+Following README_python-install.html.
+
+Move everything into simplerest/ and make blank __init__.py so it is
+treated as a python package (directory containing stuff) and rename
+restpython.py to server.py (server is the module in the simplerest
+package). Note I make a package only because I had the extra
+SimpleFileResponse.py file. Otherwise I could have only had a single
+file module.
+
+Now you can do: "python -m simplerest.server". I think this make more
+sense than if the module and the package had the same name: "python -m
+simplerest.simplerest"
+
+Check:
+python setup.py sdist
+Yep seems to work.
+
+================================
+
+Put on github:
+
+on github create project "simplerest"
+> https://github.com/michaelbrownid/simplerest.git
+
+Create .gitignore
+
+git init
+git add .
+git commit -m "first commit"
+git remote add origin https://github.com/michaelbrownid/simplerest.git
+git push -u origin master
+
+# Done!
+
+----------------
+
+Try on another machine with nothing installed:
+
+>>> import foo
+Traceback (most recent call last):
+File "<stdin>", line 1, in <module>
+      ImportError: No module named foo
+
+> pip install git+https://github.com/michaelbrownid/pythoninstalltest.git
