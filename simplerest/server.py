@@ -30,12 +30,14 @@ class RestHandler(BaseHTTPRequestHandler):
     Run as:
         python restPython # on port 8080
 
-    Or run as subclass:
-        import restPython
-        class myHandler(restPython.RestHandler):
-          def action_myfunction( self ):
-            self.message = "myfunction here!"
-        server = restPython.ThreadedHTTPServer(('localhost', 8080), myHandler)
+    Or run as subclass after installing simple rest with:
+       "pip install git+https://github.com/michaelbrownid/simplerest.git"
+
+        import simplerest.server
+        class myHandler(simplerest.server.RestHandler):
+            def action_myfunction( self ):
+                self.message = "myfunction here!"
+        server = simplerest.server.ThreadedHTTPServer(('localhost', 9000), myHandler)
         print('Starting server, use <Ctrl-C> to stop')
         server.serve_forever()
 
