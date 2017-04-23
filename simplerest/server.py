@@ -41,6 +41,8 @@ class RestHandler(BaseHTTPRequestHandler):
         print('Starting server, use <Ctrl-C> to stop')
         server.serve_forever()
 
+       http://localhost:9000/myfunction now returns "myfunction here!"
+
     """
 
     ################################
