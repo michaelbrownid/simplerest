@@ -280,10 +280,10 @@ cross site return CORS"""
 
         if True:
             messedup = cgi.FieldStorage( fp=self.rfile,headers=self.headers, environ={'REQUEST_METHOD':'POST'})
-            print "messedup", str(messedup)
+            #print "messedup", str(messedup)
             for mm in messedup:
-                print "mm", mm
-                print "messedup[mm]", str(messedup[mm])
+                #print "mm", mm
+                #print "messedup[mm]", str(messedup[mm])
 
                 if isinstance(messedup[mm],list):
                     for key in messedup[mm]:
@@ -295,7 +295,7 @@ cross site return CORS"""
                     mykey = ""+mm+messedup[mm].filename
                     self.form[mykey] = messedup[mm].value
 
-            print self.form
+            #print self.form
 
         self.handleRequest()
 
