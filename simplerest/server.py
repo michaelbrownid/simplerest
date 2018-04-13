@@ -83,16 +83,27 @@ class RestHandler(BaseHTTPRequestHandler):
 	<input type="submit" value="Submit">
         </form>
 
+        PYTHON send report.xls:
+        with open('report.xls', 'rb') as f: r = requests.post('http://192.168.11.16:8080/uploadFile', files={'MYUPLOAD': f})
+        # server will save as _file-.MYUPLOAD.report.xls
         """
 
         if not hasattr(self,"message"): self.message=""
         print "uploadFile"
-        self.message += "self.form" + str(self.form)
+        self.message += "self.form" + str(self.form) + "\n"
         print self.message
         for kk in self.form.keys():
-            if "filesToUpload" in kk:
-                with file(kk,'wb') as f:  
-                    f.write(self.form[kk])
+            # convention naming for files from do_POST: "_file.<key>.<filename>" convention
+            if "_file." in kk:
+                print "writing file %s" % kk
+                infile = self.form[kk]
+                with file(kk,'wb') as f:
+                    chunk_size=1024
+                    data = infile.read(chunk_size)
+                    while data:
+                        f.write(data)
+                        data = infile.read(chunk_size)
+                        
         self.message += "files written"
 
     ################################
@@ -286,15 +297,38 @@ cross site return CORS"""
                 #print "messedup[mm]", str(messedup[mm])
 
                 if isinstance(messedup[mm],list):
+                    # list of things with same name
                     for key in messedup[mm]:
-                        if key.filename is None: key.filename=""
+                        if key.filename is None:
+                            # passed as simple string
+                            key.filename=""
+                            mykey = ""+mm+key.filename
+                            self.form[mykey] = key.value
+                        else:
+                            # passed as file type object. fieldstorage already
+                            # dumped to file and gives pointer to
+                            # .file. calling key.value will read into
+                            # memory. pass .file with name
+                            # "_file.key.filename" convention
+                            mykey = "_file."+mm+"."+key.filename
+                            self.form[mykey] = key.file
+                else:
+                    # just single name, not list
+                    key = messedup[mm]
+                    if key.filename is None:
+                        # passed as simple string
+                        key.filename=""
                         mykey = ""+mm+key.filename
                         self.form[mykey] = key.value
-                else:
-                    if messedup[mm].filename is None: messedup[mm].filename=""
-                    mykey = ""+mm+messedup[mm].filename
-                    self.form[mykey] = messedup[mm].value
-
+                    else:
+                        # passed as file type object. fieldstorage already
+                        # dumped to file and gives pointer to
+                        # .file. calling key.value will read into
+                        # memory. pass .file with name
+                        # "_file_key_filename" convention
+                        mykey = "_file."+mm+"."+key.filename
+                        self.form[mykey] = key.file
+                        
             #print self.form
 
         self.handleRequest()
