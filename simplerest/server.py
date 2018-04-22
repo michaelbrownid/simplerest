@@ -86,6 +86,9 @@ class RestHandler(BaseHTTPRequestHandler):
         PYTHON send report.xls:
         with open('report.xls', 'rb') as f: r = requests.post('http://192.168.11.16:8080/uploadFile', files={'MYUPLOAD': f})
         # server will save as _file.MYUPLOAD.report.xls
+
+        CURL send report.xls:
+        curl -v -F MYUPLOAD=@report.xls http://192.168.11.207:8080/uploadFile
         """
 
         if not hasattr(self,"message"): self.message=""
