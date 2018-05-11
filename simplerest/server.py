@@ -186,6 +186,17 @@ class RestHandler(BaseHTTPRequestHandler):
         self.message = "done setkey %s %s" % (mykey,myvalue)
 
     ################################
+    def setkey_direct( self, mykey, myvalue):
+        """A helper function to action_setkey. So rather than direct access
+        simplerest.server.keystate[mykey]="new"
+        simplerest.server.keyvalue[mykey]=myval
+        in Python code, one can call self.setkey_direct(mykey,myval)"""
+
+        print "*** setkey_direct", mykey, myvalue
+        keystate[mykey]="new"
+        keyvalue[mykey]=myvalue
+
+    ################################
     def action_getkey( self ):
         """Take field key and return value"""
 
@@ -208,6 +219,13 @@ class RestHandler(BaseHTTPRequestHandler):
         self.message = "%s" % (keyvalue[mykey])
         print self.message
         keystate[mykey] = "old"
+
+    ################################
+    def getkeystate( self, mykey ):
+        return( keystate[mykey] )
+
+    def getkeyvalue( self, mykey ):
+        return( keyvalue[mykey] )
 
     ################################
     def handleRequest(self):
