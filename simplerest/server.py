@@ -7,6 +7,10 @@ import SimpleFileResponse
 import sys
 import os
 from StringIO import StringIO
+import argparse
+import threading
+import requests
+import broadcast
 
 ################################
 # global state variables shared between threads
@@ -361,29 +365,44 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 ################################
 if __name__ == '__main__':
-    args = {"d": "./", "p": 8080, "h": "192.168.11.16"}
-    ii=1
-    while ii<len(sys.argv):
-        if sys.argv[ii] == "d":
-            ii+=1
-            args["d"] = sys.argv[ii]
-            ii+=1
-        elif sys.argv[ii] == "p":
-            ii+=1
-            args["p"] = int(sys.argv[ii])
-            ii+=1
-        elif sys.argv[ii] == "h":
-            ii+=1
-            args["h"] = sys.argv[ii]
-            ii+=1
-        else:
-            print "unknown option", sys.argv
-    print "args", args
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dir', help='the directory to serve from', default="./")
+    parser.add_argument('--port', help='the port to serve on', default=8080)
+    parser.add_argument('--host', help='the host to serve on', default="0.0.0.0")
+    parser.add_argument('--broadcast', help='broadcast on start 0/1. /setkey?key=broadcast&value=0 to turn off', default="0")
+    args = parser.parse_args()
+
 
     # change to root directory
-    os.chdir(args["d"])
+    os.chdir(args.dir)
 
-    #server = ThreadedHTTPServer(('localhost', 8080), RestHandler)
-    server = ThreadedHTTPServer((args["h"], args["p"]), RestHandler)
-    print('Starting server, use <Ctrl-C> to stop')
-    server.serve_forever()
+    server = ThreadedHTTPServer((args.host, args.port), RestHandler)
+
+    # start a thrad with the server --that trhead will then start one more thread for each request
+    server_thread = threading.Thread(target=server.serve_forever)
+    # Exit the server thread when the main thread terminates
+    server_thread.daemon = True
+    server_thread.start()
+    print "Server loop running in thread:", server_thread.name
+
+    #alternative that blocks:
+    #print('Starting server, use <Ctrl-C> to stop')
+    #server.serve_forever()
+
+    #### handle broadcast
+    if args.broadcast=="1":
+        # set the key on the server
+        requests.get("http://localhost:%d/setkey?key=broadcast&value=1" % args.port)
+        
+        mycast = broadcast.sender(6789,args.port)
+        
+        while "1" in requests.get("http://localhost:%d/getkey?key=broadcast&immediate=T" % args.port).text:
+            print "broadcasting on port 6789"
+            mycast.send()
+            time.sleep(1.0)
+
+        print "broadcast stopped"
+
+    # wait on server thread, otherwise will terminate killing server thread
+    server_thread.join()

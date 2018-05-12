@@ -205,3 +205,12 @@ Starting server, use <Ctrl-C> to stop
 YAY!
 
 ================================
+
+Have server broadcast and then pick up the address.
+
+python -m simplerest.server --broadcast 1
+# broadcasts 1/second on port 6789
+
+other process:
+python -m simplerest.broadcast
+# this will listen for broadcast, print the server location, and then turn off broadcasting
