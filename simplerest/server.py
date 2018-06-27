@@ -135,6 +135,60 @@ class RestHandler(BaseHTTPRequestHandler):
         self.message+="command constructed but no executed"
 
     ################################
+    def filepodFind( self, finddir ):
+        """output filename, mtime, and size just like:
+        find . -type f -printf "%P\t%T@\t%s\n"
+        """
+
+        result = []
+        if finddir[-1]!="/": finddir = finddir+"/"
+        rootlen=-1
+        for root, dirs, files in os.walk(finddir):
+            if rootlen==-1: rootlen=len(root)
+            for item in files:
+                if root[-1]=="/":
+                    fn= "%s%s" % (root, item)
+                else:
+                    fn= "%s/%s" % (root, item)
+
+                ok = True
+                try:
+                    size = os.path.getsize(fn)
+                except:
+                    ok = False
+                if ok:
+                    mtime = int(os.path.getmtime(fn)+0.5)
+                    result.append( "%s\t%d\t%d" % (fn[rootlen:], mtime, size) )
+        return(result)
+        
+    def action_findFiles( self ):
+        """Find all files under directory
+        http://192.168.11.16:8080/listFiles?value=/var/log;outfile=filelist.txt
+        outfile is optional
+        """
+
+        if not hasattr(self,"message"): self.message=""
+
+        self.message += "listFiles\n"
+
+        mydir = self.form["value"][0]
+        allfiles = self.filepodFind( mydir )
+        
+        if not "outfile" in self.form:
+            # output in http response
+            self.message += "\n".join(allfiles)
+        else:
+            # output to file
+            if os.path.exists(self.form["outfile"][0]):
+                self.message += "ERROR! %s already exists!" % (self.form["outfile"][0])
+            else:
+                ofp=open(self.form["outfile"][0],"w")
+                print >>ofp, "\n".join(allfiles)
+                print >>ofp, "\n"
+                ofp.close()
+        self.message += "fileFiles done"
+        
+    ################################
     def action_exit( self ):
         """Kill the server with a sys.exit(0). Doesn't really work as blocked threads are still spawned"""
         sys.exit(0)
@@ -379,7 +433,7 @@ if __name__ == '__main__':
 
     server = ThreadedHTTPServer((args.host, args.port), RestHandler)
 
-    # start a thrad with the server --that trhead will then start one more thread for each request
+    # start a thread with the server --that thread will then start one more thread for each request
     server_thread = threading.Thread(target=server.serve_forever)
     # Exit the server thread when the main thread terminates
     server_thread.daemon = True
@@ -390,7 +444,7 @@ if __name__ == '__main__':
     #print('Starting server, use <Ctrl-C> to stop')
     #server.serve_forever()
 
-    #### handle broadcast
+    #### handle UDP broadcast
     if args.broadcast=="1":
         # set the key on the server
         requests.get("http://localhost:%d/setkey?key=broadcast&value=1" % args.port)

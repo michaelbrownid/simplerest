@@ -40,8 +40,7 @@ class receiver:
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--port', help='the port to listen on for broadcasting servers', default=6789)
-    parser.add_argument('--serverport', help='the parent server port that is listening', default=8080)
+    parser.add_argument('--port', help='the port to listen on for UDP broadcasting servers', default=6789)
     args = parser.parse_args()
 
     myrec = receiver(args.port)
