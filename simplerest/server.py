@@ -175,6 +175,10 @@ class RestHandler(BaseHTTPRequestHandler):
         self.message += "listFiles\n"
 
         mydir = self.form["value"][0]
+        if not os.path.exists(mydir):
+            self.message += "ERROR! %s does not exist!" % (mydir)
+            return
+        
         allfiles = self.filepodFind( mydir )
         
         if not "outfile" in self.form:

@@ -2,18 +2,14 @@ import os
 import posixpath
 ##PYTHON2: import BaseHTTPServer
 #from http.server import BaseHTTPServer
-import urllib.parse as urlparse
+import urllib
 import cgi
 import sys
 import shutil
 import mimetypes
-from io import StringIO
-
-##PYTHON2:
-# try:
-#     from cStringIO import StringIO
-# except ImportError:
-#     from StringIO import StringIO
+import io
+import html
+from http import HTTPStatus
 
 class SimpleFileResponse( ):
     """Simply serve up files and directories almos exactly as in
@@ -36,8 +32,10 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
         """Serve a GET request."""
         f = self.send_head()
         if f:
-            self.copyfile(f, self.inrequest.wfile)
-            f.close()
+            try:
+                self.copyfile(f, self.inrequest.wfile)
+            finally:
+                f.close()
 
     def do_HEAD(self):
         """Serve a HEAD request."""
@@ -56,10 +54,14 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
         path = self.translate_path(self.inrequest.path)
         f = None
         if os.path.isdir(path):
-            if not self.inrequest.path.endswith('/'):
+            parts = urllib.parse.urlsplit(self.inrequest.path)
+            if not parts.path.endswith('/'):
                 # redirect browser - doing basically what apache does
-                self.inrequest.send_response(301)
-                self.inrequest.send_header("Location", self.inrequest.path + "/")
+                self.inrequest.send_response(HTTPStatus.MOVED_PERMANENTLY)
+                new_parts = (parts[0], parts[1], parts[2] + '/',
+                             parts[3], parts[4])
+                new_url = urllib.parse.urlunsplit(new_parts)
+                self.inrequest.send_header("Location", new_url)
                 self.inrequest.end_headers()
                 return None
             for index in "index.html", "index.htm":
@@ -99,12 +101,23 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
             self.inrequest.send_error(404, "No permission to list directory")
             return None
         list.sort(key=lambda a: a.lower())
-        f = StringIO()
-        displaypath = cgi.escape(urlparse.unquote(self.inrequest.path))
-        f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">')
-        f.write("<html>\n<title>Directory listing for %s</title>\n" % displaypath)
-        f.write("<body>\n<h2>Directory listing for %s</h2>\n" % displaypath)
-        f.write("<hr>\n<ul>\n")
+        r = []
+        try:
+            displaypath = urllib.parse.unquote(self.inrequest.path,
+                                               errors='surrogatepass')
+        except UnicodeDecodeError:
+            displaypath = urllib.parse.unquote(path)
+        displaypath = html.escape(displaypath, quote=False)
+        enc = sys.getfilesystemencoding()
+        title = 'Directory listing for %s' % displaypath
+        r.append('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
+                 '"http://www.w3.org/TR/html4/strict.dtd">')
+        r.append('<html>\n<head>')
+        r.append('<meta http-equiv="Content-Type" '
+                 'content="text/html; charset=%s">' % enc)
+        r.append('<title>%s</title>\n</head>' % title)
+        r.append('<body>\n<h1>%s</h1>' % title)
+        r.append('<hr>\n<ul>')
         for name in list:
             fullname = os.path.join(path, name)
             displayname = linkname = name
@@ -115,15 +128,18 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
             if os.path.islink(fullname):
                 displayname = name + "@"
                 # Note: a link to a directory displays with @ and links with /
-            f.write('<li><a href="%s">%s</a>\n'
-                    % (urlparse.quote(linkname), cgi.escape(displayname)))
-        f.write("</ul>\n<hr>\n</body>\n</html>\n")
-        length = f.tell()
+            r.append('<li><a href="%s">%s</a></li>'
+                    % (urllib.parse.quote(linkname,
+                                          errors='surrogatepass'),
+                       html.escape(displayname, quote=False)))
+        r.append('</ul>\n<hr>\n</body>\n</html>\n')
+        encoded = '\n'.join(r).encode(enc, 'surrogateescape')
+        f = io.BytesIO()
+        f.write(encoded)
         f.seek(0)
-        self.inrequest.send_response(200)
-        encoding = sys.getfilesystemencoding()
-        self.inrequest.send_header("Content-type", "text/html; charset=%s" % encoding)
-        self.inrequest.send_header("Content-Length", str(length))
+        self.inrequest.send_response(HTTPStatus.OK)
+        self.inrequest.send_header("Content-type", "text/html; charset=%s" % enc)
+        self.inrequest.send_header("Content-Length", str(len(encoded)))
         self.inrequest.end_headers()
         return f
 
@@ -136,15 +152,23 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
         # abandon query parameters
         path = path.split('?',1)[0]
         path = path.split('#',1)[0]
-        path = posixpath.normpath(urlparse.unquote(path))
+        # Don't forget explicit trailing slash when normalizing. Issue17324
+        trailing_slash = path.rstrip().endswith('/')
+        try:
+            path = urllib.parse.unquote(path, errors='surrogatepass')
+        except UnicodeDecodeError:
+            path = urllib.parse.unquote(path)
+        path = posixpath.normpath(path)
         words = path.split('/')
         words = filter(None, words)
         path = os.getcwd()
         for word in words:
-            drive, word = os.path.splitdrive(word)
-            head, word = os.path.split(word)
-            if word in (os.curdir, os.pardir): continue
+            if os.path.dirname(word) or word in (os.curdir, os.pardir):
+                # Ignore components that are not a simple file/directory name
+                continue
             path = os.path.join(path, word)
+        if trailing_slash:
+            path += '/'
         return path
 
     def copyfile(self, source, outputfile):
@@ -178,7 +202,7 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
         if ext in self.extensions_map:
             return self.extensions_map[ext]
         else:
-            return self .extensions_map['']
+            return self.extensions_map['']
 
     if not mimetypes.inited:
         mimetypes.init() # try to read system mime.types
