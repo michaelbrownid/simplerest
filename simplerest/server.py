@@ -107,7 +107,7 @@ class RestHandler(BaseHTTPRequestHandler):
             if "_file." in kk:
                 print("writing file %s" % kk)
                 infile = self.form[kk]
-                with file(kk,'wb') as f:
+                with open(kk,'wb') as f:
                     chunk_size=1024
                     data = infile.read(chunk_size)
                     while data:
@@ -166,13 +166,13 @@ class RestHandler(BaseHTTPRequestHandler):
         
     def action_findFiles( self ):
         """Find all files under directory
-        http://192.168.11.16:8080/listFiles?value=/var/log;outfile=filelist.txt
+        http://192.168.11.16:8080/findFiles?value=/var/log;outfile=filelist.txt
         outfile is optional
         """
 
         if not hasattr(self,"message"): self.message=""
 
-        self.message += "listFiles\n"
+        self.message += "findFiles_begin\n"
 
         mydir = self.form["value"][0]
         if not os.path.exists(mydir):
@@ -194,7 +194,7 @@ class RestHandler(BaseHTTPRequestHandler):
                 print ("\n".join(allfiles), file=ofp)
                 print ("\n", file=ofp)
                 ofp.close()
-        self.message += "fileFiles done"
+        self.message += "fileFiles_end"
         
     ################################
     def action_exit( self ):
@@ -331,8 +331,8 @@ class RestHandler(BaseHTTPRequestHandler):
         if not hasattr(self,"httpstatus"): self.httpstatus=200
         self.send_response(self.httpstatus)
         self.end_headers()
-        self.wfile.write(self.message)
-        self.wfile.write('\n')
+        self.wfile.write(str.encode(self.message))
+        self.wfile.write(str.encode('\n'))
 
     ################################
     def do_OPTIONS(self):
