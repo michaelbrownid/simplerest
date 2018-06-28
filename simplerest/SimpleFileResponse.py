@@ -1,15 +1,19 @@
 import os
 import posixpath
-import BaseHTTPServer
+##PYTHON2: import BaseHTTPServer
+#from http.server import BaseHTTPServer
 import urllib
 import cgi
 import sys
 import shutil
 import mimetypes
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from io import StringIO
+
+##PYTHON2:
+# try:
+#     from cStringIO import StringIO
+# except ImportError:
+#     from StringIO import StringIO
 
 class SimpleFileResponse( ):
     """Simply serve up files and directories almos exactly as in

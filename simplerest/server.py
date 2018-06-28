@@ -1,16 +1,19 @@
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-from SocketServer import ThreadingMixIn
-import urlparse
+##PYTHON2: from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+from http.server import HTTPServer, BaseHTTPRequestHandler
+##PYTHON2: from SocketServer import ThreadingMixIn
+from socketserver import ThreadingMixIn
+##PYTHON2: import urlparse
+import urllib.parse as urlparse
 import time
 import cgi
-import SimpleFileResponse
+from . import SimpleFileResponse
 import sys
 import os
-from StringIO import StringIO
+from io import StringIO
 import argparse
 import threading
 import requests
-import broadcast
+from . import broadcast
 
 ################################
 # global state variables shared between threads
@@ -96,13 +99,13 @@ class RestHandler(BaseHTTPRequestHandler):
         """
 
         if not hasattr(self,"message"): self.message=""
-        print "uploadFile"
+        print("uploadFile")
         self.message += "self.form" + str(self.form) + "\n"
-        print self.message
+        print(self.message)
         for kk in self.form.keys():
             # convention naming for files from do_POST: "_file.<key>.<filename>" convention
             if "_file." in kk:
-                print "writing file %s" % kk
+                print("writing file %s" % kk)
                 infile = self.form[kk]
                 with file(kk,'wb') as f:
                     chunk_size=1024
@@ -177,14 +180,15 @@ class RestHandler(BaseHTTPRequestHandler):
         if not "outfile" in self.form:
             # output in http response
             self.message += "\n".join(allfiles)
+            self.message += "\n"
         else:
             # output to file
             if os.path.exists(self.form["outfile"][0]):
                 self.message += "ERROR! %s already exists!" % (self.form["outfile"][0])
             else:
                 ofp=open(self.form["outfile"][0],"w")
-                print >>ofp, "\n".join(allfiles)
-                print >>ofp, "\n"
+                print ("\n".join(allfiles), file=ofp)
+                print ("\n", file=ofp)
                 ofp.close()
         self.message += "fileFiles done"
         
@@ -202,7 +206,7 @@ class RestHandler(BaseHTTPRequestHandler):
 
         toexec = self.form["value"][0]
 
-        print "exec: toexec=%s" % toexec
+        print("exec: toexec=%s" % toexec)
 
         # execute capturing stdout
         buffer = StringIO()
@@ -218,7 +222,7 @@ class RestHandler(BaseHTTPRequestHandler):
 
         toexec = open(self.form["value"][0]).read()
 
-        print "exec: toexec=%s" % toexec
+        print("exec: toexec=%s" % toexec)
 
         # execute capturing stdout
         buffer = StringIO()
@@ -236,7 +240,7 @@ class RestHandler(BaseHTTPRequestHandler):
         mykey = self.form["key"][0]
         myvalue = self.form["value"][0]
 
-        print "*** setkey", mykey, myvalue
+        print("*** setkey", mykey, myvalue)
 
         keystate[mykey]="new"
         keyvalue[mykey]=myvalue
@@ -250,7 +254,7 @@ class RestHandler(BaseHTTPRequestHandler):
         simplerest.server.keyvalue[mykey]=myval
         in Python code, one can call self.setkey_direct(mykey,myval)"""
 
-        print "*** setkey_direct", mykey, myvalue
+        print("*** setkey_direct", mykey, myvalue)
         keystate[mykey]="new"
         keyvalue[mykey]=myvalue
 
@@ -259,12 +263,12 @@ class RestHandler(BaseHTTPRequestHandler):
         """Take field key and return value"""
 
         mykey = self.form["key"][0]
-        print "*** getkey", mykey
+        print("*** getkey", mykey)
 
         if mykey not in keystate:
             self.httpstatus = 404
             self.message = "error mykey not in keystate"
-            print self.message
+            print(self.message)
             return()
 
         # possible blocking long poll
@@ -275,7 +279,7 @@ class RestHandler(BaseHTTPRequestHandler):
 
         # return the value
         self.message = "%s" % (keyvalue[mykey])
-        print self.message
+        print(self.message)
         keystate[mykey] = "old"
 
     ################################
@@ -287,7 +291,7 @@ class RestHandler(BaseHTTPRequestHandler):
 
     ################################
     def handleRequest(self):
-        print "***handleRequest"
+        print("***handleRequest")
 
         ################################
         #print(dir(self))
@@ -331,16 +335,16 @@ class RestHandler(BaseHTTPRequestHandler):
         """Chrome if making request with non-standard headers (ie basic
 authentication) will make a "preflight" OPTIONS request. To allow
 cross site return CORS"""
-        print "***do_OPTIONS"
+        print("***do_OPTIONS")
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*") # CORS for cross-origin xhr if needed
         self.end_headers()
 
     ################################
     def do_GET(self):
-        print "***do_GET"
+        print("***do_GET")
 
-        if "form" in dir(self): print "error do_POST: form already exists!"
+        if "form" in dir(self): print("error do_POST: form already exists!")
 
         # THIS IS MESSED UP! To use FieldStorage on GET, you have
         # to pull out the GET variables yourself with urlparse!
@@ -357,23 +361,23 @@ cross site return CORS"""
         """process POST variables into environ and pass to do_GET for handling
 
         """
-        print "***do_POST"
+        print("***do_POST")
 
         # parse post values into form and then pass to do_GET for processing
 
-        #print "rfile", self.rfile.read(int(self.headers.getheader('Content-Length')))
+        #print("rfile", self.rfile.read(int(self.headers.getheader('Content-Length'))))
 
         self.environ={}
 
-        if "form" in dir(self): print "error do_POST: form already exists!"
+        if "form" in dir(self): print("error do_POST: form already exists!")
         self.form={}
 
         if True:
             messedup = cgi.FieldStorage( fp=self.rfile,headers=self.headers, environ={'REQUEST_METHOD':'POST'})
-            #print "messedup", str(messedup)
+            #print("messedup", str(messedup))
             for mm in messedup:
-                #print "mm", mm
-                #print "messedup[mm]", str(messedup[mm])
+                #print("mm", mm)
+                #print("messedup[mm]", str(messedup[mm]))
 
                 if isinstance(messedup[mm],list):
                     # list of things with same name
@@ -408,7 +412,7 @@ cross site return CORS"""
                         mykey = "_file."+mm+"."+key.filename
                         self.form[mykey] = key.file
                         
-            #print self.form
+            #print(self.form)
 
         self.handleRequest()
 
@@ -438,7 +442,7 @@ if __name__ == '__main__':
     # Exit the server thread when the main thread terminates
     server_thread.daemon = True
     server_thread.start()
-    print "Server loop running in thread:", server_thread.name
+    print("Server loop running in thread:", server_thread.name)
 
     #alternative that blocks:
     #print('Starting server, use <Ctrl-C> to stop')
@@ -452,11 +456,11 @@ if __name__ == '__main__':
         mycast = broadcast.sender(6789,args.port)
         
         while "1" in requests.get("http://localhost:%d/getkey?key=broadcast&immediate=T" % args.port).text:
-            print "broadcasting on port 6789"
+            print("broadcasting on port 6789")
             mycast.send()
             time.sleep(1.0)
 
-        print "broadcast stopped"
+        print("broadcast stopped")
 
     # wait on server thread, otherwise will terminate killing server thread
     server_thread.join()
