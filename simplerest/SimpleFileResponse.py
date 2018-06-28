@@ -2,7 +2,7 @@ import os
 import posixpath
 ##PYTHON2: import BaseHTTPServer
 #from http.server import BaseHTTPServer
-import urllib
+import urllib.parse as urlparse
 import cgi
 import sys
 import shutil
@@ -100,7 +100,7 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
             return None
         list.sort(key=lambda a: a.lower())
         f = StringIO()
-        displaypath = cgi.escape(urllib.unquote(self.inrequest.path))
+        displaypath = cgi.escape(urlparse.unquote(self.inrequest.path))
         f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">')
         f.write("<html>\n<title>Directory listing for %s</title>\n" % displaypath)
         f.write("<body>\n<h2>Directory listing for %s</h2>\n" % displaypath)
@@ -116,7 +116,7 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
                 displayname = name + "@"
                 # Note: a link to a directory displays with @ and links with /
             f.write('<li><a href="%s">%s</a>\n'
-                    % (urllib.quote(linkname), cgi.escape(displayname)))
+                    % (urlparse.quote(linkname), cgi.escape(displayname)))
         f.write("</ul>\n<hr>\n</body>\n</html>\n")
         length = f.tell()
         f.seek(0)
@@ -136,7 +136,7 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
         # abandon query parameters
         path = path.split('?',1)[0]
         path = path.split('#',1)[0]
-        path = posixpath.normpath(urllib.unquote(path))
+        path = posixpath.normpath(urlparse.unquote(path))
         words = path.split('/')
         words = filter(None, words)
         path = os.getcwd()
