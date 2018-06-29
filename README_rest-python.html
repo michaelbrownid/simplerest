@@ -32,7 +32,7 @@ I did some similar README_web-command.html. copy here to
 "restPython.py" and update GET/POST from
 /media/datastore/storestudio/workspace2015/webfilemanager/webfilemanager.py
 
-python -m simplerest.server
+python3 -m simplerest.server
 
 ----
 GET http://localhost:8080/service?foo=bar
@@ -208,9 +208,15 @@ YAY!
 
 Have server broadcast and then pick up the address.
 
-python -m simplerest.server --broadcast 1
+python3 -m simplerest.server --broadcast 1
 # broadcasts 1/second on port 6789
 
 other process:
-python -m simplerest.broadcast
+python3 -m simplerest.broadcast
 # this will listen for broadcast, print the server location, and then turn off broadcasting
+receiver init 6789
+receiver.listen
+got data:  b'8080,isanyoneout' from addr: ('192.168.11.16', 42529)
+GOT BROADCAST
+server: http://192.168.11.16:8080/
+turning off broadcast: curl 'http://192.168.11.16:8080/setkey?key=broadcast&value=0''

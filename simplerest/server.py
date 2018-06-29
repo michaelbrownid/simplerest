@@ -426,20 +426,12 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
 ################################
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dir', help='the directory to serve from', default="./")
-    parser.add_argument('--port', help='the port to serve on', default=8080)
-    parser.add_argument('--host', help='the host to serve on', default="0.0.0.0")
-    parser.add_argument('--broadcast', help='broadcast on start 0/1. /setkey?key=broadcast&value=0 to turn off', default="0")
-    args = parser.parse_args()
-
+def main( args ):
 
     # change to root directory
-    os.chdir(args.dir)
+    os.chdir(args["dir"])
 
-    server = ThreadedHTTPServer((args.host, args.port), RestHandler)
+    server = ThreadedHTTPServer((args["host"], args["port"]), RestHandler)
 
     # start a thread with the server --that thread will then start one more thread for each request
     server_thread = threading.Thread(target=server.serve_forever)
@@ -453,13 +445,13 @@ if __name__ == '__main__':
     #server.serve_forever()
 
     #### handle UDP broadcast
-    if args.broadcast=="1":
+    if args["broadcast"]=="1":
         # set the key on the server
-        requests.get("http://localhost:%d/setkey?key=broadcast&value=1" % args.port)
+        requests.get("http://localhost:%d/setkey?key=broadcast&value=1" % args["port"])
         
-        mycast = broadcast.sender(6789,args.port)
+        mycast = broadcast.sender(6789,args["port"])
         
-        while "1" in requests.get("http://localhost:%d/getkey?key=broadcast&immediate=T" % args.port).text:
+        while "1" in requests.get("http://localhost:%d/getkey?key=broadcast&immediate=T" % args["port"]).text:
             print("broadcasting on port 6789")
             mycast.send()
             time.sleep(1.0)
@@ -468,3 +460,17 @@ if __name__ == '__main__':
 
     # wait on server thread, otherwise will terminate killing server thread
     server_thread.join()
+
+################################
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dir', help='the directory to serve from', default="./")
+    parser.add_argument('--port', help='the port to serve on', default=8080)
+    parser.add_argument('--host', help='the host to serve on', default="0.0.0.0")
+    parser.add_argument('--broadcast', help='broadcast on start 0/1. /setkey?key=broadcast&value=0 to turn off', default="0")
+    args = parser.parse_args()
+
+    main(vars(args)) # vars gives dict rather than dotted so I run
+                     # main with simple dict outside main: main(
+                     # {"dir":"foobar"}). class is too verbose
