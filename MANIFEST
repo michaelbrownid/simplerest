@@ -2,4 +2,5 @@
 setup.py
 simplerest/SimpleFileResponse.py
 simplerest/__init__.py
+simplerest/broadcast.py
 simplerest/server.py
