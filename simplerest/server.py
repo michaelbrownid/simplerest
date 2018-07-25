@@ -404,8 +404,7 @@ cross site return CORS"""
                     key = messedup[mm]
                     if key.filename is None:
                         # passed as simple string
-                        key.filename=""
-                        mykey = ""+mm+key.filename
+                        mykey = ""+mm
                         self.form[mykey] = key.value
                     else:
                         # passed as file type object. fieldstorage already
