@@ -404,6 +404,7 @@ cross site return CORS"""
                     key = messedup[mm]
                     if key.filename is None:
                         # passed as simple string
+                        if mm is None: mm="UPLOAD"
                         mykey = ""+mm
                         self.form[mykey] = key.value
                     else:
