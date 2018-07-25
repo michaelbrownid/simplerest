@@ -72,7 +72,6 @@ class RestHandler(BaseHTTPRequestHandler):
         
         if not hasattr(self,"message"): self.message=""
 
-        self.message += self.__doc__
         self.message += "\n #### list of commands:\n"
 
         for xx in dir(self):
