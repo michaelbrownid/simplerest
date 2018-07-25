@@ -9,7 +9,6 @@ import shutil
 import mimetypes
 import io
 import html
-from http import HTTPStatus
 
 class SimpleFileResponse( ):
     """Simply serve up files and directories almos exactly as in
@@ -57,7 +56,7 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
             parts = urllib.parse.urlsplit(self.inrequest.path)
             if not parts.path.endswith('/'):
                 # redirect browser - doing basically what apache does
-                self.inrequest.send_response(HTTPStatus.MOVED_PERMANENTLY)
+                self.inrequest.send_response(301) # HTTPStatus.MOVED_PERMANENTLY
                 new_parts = (parts[0], parts[1], parts[2] + '/',
                              parts[3], parts[4])
                 new_url = urllib.parse.urlunsplit(new_parts)
@@ -137,7 +136,7 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
         f = io.BytesIO()
         f.write(encoded)
         f.seek(0)
-        self.inrequest.send_response(HTTPStatus.OK)
+        self.inrequest.send_response(200) # HTTPStatus.OK
         self.inrequest.send_header("Content-type", "text/html; charset=%s" % enc)
         self.inrequest.send_header("Content-Length", str(len(encoded)))
         self.inrequest.end_headers()
