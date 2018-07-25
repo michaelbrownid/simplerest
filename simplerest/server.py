@@ -95,7 +95,7 @@ class RestHandler(BaseHTTPRequestHandler):
         # server will save as _file.MYUPLOAD.report.xls
 
         CURL send report.xls:
-        curl -v -F MYUPLOAD=@report.xls http://192.168.11.207:8080/uploadFile
+        curl -v -F "MYUPLOAD=@report.xls" http://192.168.11.207:8080/uploadFile
         """
 
         if not hasattr(self,"message"): self.message=""
