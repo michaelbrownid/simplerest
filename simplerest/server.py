@@ -68,6 +68,7 @@ class RestHandler(BaseHTTPRequestHandler):
 
     ################################
     def action_help( self ):
+        """help: list available commands"""
         
         if not hasattr(self,"message"): self.message=""
 
