@@ -14,6 +14,7 @@ import argparse
 import threading
 import requests
 from . import broadcast
+import socket
 
 ################################
 # global state variables shared between threads
@@ -275,7 +276,7 @@ class RestHandler(BaseHTTPRequestHandler):
             print(self.message)
             return()
 
-        # possible blocking long poll
+        # possible blocking long poll. Probably dangerous for large number of "old" keys
         if not "immediate" in self.form:
             while not keystate[mykey]=="new":
                 #print("sleep")
@@ -446,11 +447,12 @@ def main( args ):
 
     #### handle UDP broadcast
     if args["broadcast"]=="1":
-        # set the key on the server
+        # set the key on the server started above so we know when to stop. (could I call setkey_direct function in server??)
         requests.get("http://localhost:%d/setkey?key=broadcast&value=1" % args["port"])
         
         mycast = broadcast.sender(6789,args["port"])
-        
+
+        # while no one has changed the key from "1" keep going. sleep so no spin
         while "1" in requests.get("http://localhost:%d/getkey?key=broadcast&immediate=T" % args["port"]).text:
             print("broadcasting on port 6789")
             mycast.send()
@@ -471,6 +473,12 @@ if __name__ == '__main__':
     parser.add_argument('--broadcast', help='broadcast on start 0/1. /setkey?key=broadcast&value=0 to turn off', default="0")
     args = parser.parse_args()
 
+    # try to find ip so don't necessarily need broadcast
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    print("ipAddress",s.getsockname()[0])
+    s.close()
+    
     main(vars(args)) # vars gives dict rather than dotted so I run
                      # main with simple dict outside main: main(
                      # {"dir":"foobar"}). class is too verbose
