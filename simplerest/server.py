@@ -245,8 +245,6 @@ class RestHandler(BaseHTTPRequestHandler):
         mykey = self.form["key"][0]
         myvalue = self.form["value"][0]
 
-        print("*** setkey", mykey, myvalue)
-
         keystate[mykey]="new"
         keyvalue[mykey]=myvalue
 
@@ -259,7 +257,6 @@ class RestHandler(BaseHTTPRequestHandler):
         simplerest.server.keyvalue[mykey]=myval
         in Python code, one can call self.setkey_direct(mykey,myval)"""
 
-        print("*** setkey_direct", mykey, myvalue)
         keystate[mykey]="new"
         keyvalue[mykey]=myvalue
 
@@ -284,7 +281,6 @@ class RestHandler(BaseHTTPRequestHandler):
 
         # return the value
         self.message = "%s" % (keyvalue[mykey])
-        print(self.message)
         keystate[mykey] = "old"
 
     ################################
