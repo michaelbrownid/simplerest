@@ -54,6 +54,14 @@ class RestHandler(BaseHTTPRequestHandler):
     """
 
     ################################
+    # custom init to specify to ignore top level
+    def __init__( self, ignoretoplevel, *args):
+        self.ignoretoplevel = ignoretoplevel
+        #print("RestHandler init ignoretoplevel",self.ignoretoplevel)
+        # now init the parent? TODO: use super()?
+        BaseHTTPRequestHandler.__init__(self,*args)
+        
+    ################################
     def actionsIn( self, mypath ):
         # get list of actions
         actions={}
@@ -240,7 +248,6 @@ class RestHandler(BaseHTTPRequestHandler):
     ################################
     def action_setkey( self ):
         """Take fields key and value and set"""
-
         # update global state
         mykey = self.form["key"][0]
         myvalue = self.form["value"][0]
@@ -308,11 +315,11 @@ class RestHandler(BaseHTTPRequestHandler):
         # When proxying you always have one level example.com/proxy/doit -> localhost:8080/proxy/doit
         # you wants /proxy/doit to goto /doit so we can handle it here
         # TODO: make "house" configurable
-        ff = self.path.split("/")
-        if ff[1]=="house":
-            print("house short")
-            self.path = "/"+"/".join(ff[2:])
-
+        if self.ignoretoplevel is not "NA": # todo special string!
+            ff = self.path.split("/")
+            if ff[1]==self.ignoretoplevel:
+                print("ignoretoplevel")
+                self.path = "/"+"/".join(ff[2:])
         
         ################################
         doit = self.actionsIn( self.path )
@@ -430,8 +437,52 @@ cross site return CORS"""
 
 
 ################################
+#    https://stackoverflow.com/questions/18444395/basehttprequesthandler-with-custom-instance
+
+
+class restIgnoreHTTPServer:
+    def __init__(self, host, port, ignoretoplevel, myhandler):
+        #print("restIgnoreHTTPSever init",args, ignoretoplevel, myhandler)
+        self.ignoretoplevel=ignoretoplevel
+        def handler( *args ):
+            myhandler(self.ignoretoplevel, *args)
+        self.server = ThreadedHTTPServer((host, port), handler)
+        self.server.serve_forever()
+
+        ### TODO:
+        # # start a thread with the server --that thread will then start one more thread for each request
+        # self.server_thread = threading.Thread(target=self.server.serve_forever)
+        # # Exit the server thread when the main thread terminates
+        # self.server_thread.daemon = True
+        # self.server_thread.start()
+        # print("Server loop running in thread:", self.server_thread.name)
+        # wait on server thread, otherwise will terminate killing server thread
+        #server_thread.join()
+        
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-    """Handle requests in a separate thread."""
+    """Handle requests in a separate thread"""
+    pass
+
+class broadcastWorker:
+    def __init__(self, args):
+        self.args = args
+
+    def runBroadcast( self ):
+        # sleep and wait for server to set up
+        time.sleep(4.0)
+        
+        # set the key on the server started above so we know when to stop. (could I call setkey_direct function in server??)
+        requests.get("http://localhost:%d/setkey?key=broadcast&value=1" % self.args["port"])
+        
+        mycast = broadcast.sender(6789,self.args["port"])
+
+        # while no one has changed the key from "1" keep going. sleep so no spin
+        while "1" in requests.get("http://localhost:%d/getkey?key=broadcast&immediate=T" % self.args["port"]).text:
+            print("broadcasting on port 6789")
+            mycast.send()
+            time.sleep(1.0)
+
+        print("broadcast stopped")
 
 ################################
 def main( args ):
@@ -439,35 +490,22 @@ def main( args ):
     # change to root directory
     os.chdir(args["dir"])
 
-    server = ThreadedHTTPServer((args["host"], args["port"]), RestHandler)
-
-    # start a thread with the server --that thread will then start one more thread for each request
-    server_thread = threading.Thread(target=server.serve_forever)
-    # Exit the server thread when the main thread terminates
-    server_thread.daemon = True
-    server_thread.start()
-    print("Server loop running in thread:", server_thread.name)
-
-    #alternative that blocks:
-    #print('Starting server, use <Ctrl-C> to stop')
-    #server.serve_forever()
-
     #### handle UDP broadcast
     if args["broadcast"]=="1":
-        # set the key on the server started above so we know when to stop. (could I call setkey_direct function in server??)
-        requests.get("http://localhost:%d/setkey?key=broadcast&value=1" % args["port"])
+        mybroadcast=broadcastWorker( args )
         
-        mycast = broadcast.sender(6789,args["port"])
+        server_thread = threading.Thread(target=mybroadcast.runBroadcast)
+        # Exit the server thread when the main thread terminates
+        server_thread.daemon = True
+        server_thread.start()
+        print("Broadcast loop running in thread:", server_thread.name)
 
-        # while no one has changed the key from "1" keep going. sleep so no spin
-        while "1" in requests.get("http://localhost:%d/getkey?key=broadcast&immediate=T" % args["port"]).text:
-            print("broadcasting on port 6789")
-            mycast.send()
-            time.sleep(1.0)
-
-        print("broadcast stopped")
+    #server = ThreadedHTTPServer((args["host"], args["port"]), RestHandler)
+    server = restIgnoreHTTPServer(args["host"],args["port"],"toignore", RestHandler) # ignore http://localhost/toignore/foo -> http://localhost/foo
+    # this never comes back serve_forever
 
     # wait on server thread, otherwise will terminate killing server thread
+    # shouldn't matter. but ctl-c ...
     server_thread.join()
 
 ################################
