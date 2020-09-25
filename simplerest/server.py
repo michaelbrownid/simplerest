@@ -58,8 +58,8 @@ class RestHandler(BaseHTTPRequestHandler):
     def __init__( self, ignoretoplevel, *args):
         self.ignoretoplevel = ignoretoplevel
         #print("RestHandler init ignoretoplevel",self.ignoretoplevel)
-        # now init the parent? TODO: use super()?
-        BaseHTTPRequestHandler.__init__(self,*args)
+        super().__init__(*args)
+        #BaseHTTPRequestHandler.__init__(self,*args)
         
     ################################
     def actionsIn( self, mypath ):
@@ -501,7 +501,9 @@ def main( args ):
         print("Broadcast loop running in thread:", server_thread.name)
 
     #server = ThreadedHTTPServer((args["host"], args["port"]), RestHandler)
-    server = restIgnoreHTTPServer(args["host"],args["port"],"toignore", RestHandler) # ignore http://localhost/toignore/foo -> http://localhost/foo
+    #server.serve_forever()
+    
+    server = restIgnoreHTTPServer(args["host"],args["port"], "toignore", RestHandler) # ignore http://localhost/toignore/foo -> http://localhost/foo
     # this never comes back serve_forever
 
     # wait on server thread, otherwise will terminate killing server thread
