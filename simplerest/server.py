@@ -304,6 +304,17 @@ class RestHandler(BaseHTTPRequestHandler):
         # {'requestline': 'GET /service?foo=bar HTTP/1.1', 'wfile': <socket._fileobject object at 0x7f8b0afdd350>, 'form': {'foo': ['bar']}, 'request': <socket._socketobject object at 0x7f8b0b018f30>, 'raw_requestline': 'GET /service?foo=bar HTTP/1.1\r\n', 'server': <__main__.ThreadedHTTPServer instance at 0x7f8b0d117fc8>, 'headers': <mimetools.Message instance at 0x7f8b0afe7bd8>, 'connection': <socket._socketobject object at 0x7f8b0b018f30>, 'command': 'GET', 'rfile': <socket._fileobject object at 0x7f8b0b036450>, 'path': '/service?foo=bar', 'environ': {'QUERY_STRING': 'foo=bar', 'REQUEST_METHOD': 'GET'}, 'request_version': 'HTTP/1.1', 'client_address': ('127.0.0.1', 50797), 'close_connection': 1}
 
         ################################
+        # ignore the first subdir "/house".
+        # When proxying you always have one level example.com/proxy/doit -> localhost:8080/proxy/doit
+        # you wants /proxy/doit to goto /doit so we can handle it here
+        # TODO: make "house" configurable
+        ff = self.path.split("/")
+        if ff[1]=="house":
+            print("house short")
+            self.path = "/"+"/".join(ff[2:])
+
+        
+        ################################
         doit = self.actionsIn( self.path )
 
         # if not command to be executed then send the file
@@ -474,6 +485,7 @@ if __name__ == '__main__':
     s.connect(("8.8.8.8", 80))
     print("ipAddress",s.getsockname()[0])
     s.close()
+    print("port",args.port)
     
     main(vars(args)) # vars gives dict rather than dotted so I run
                      # main with simple dict outside main: main(

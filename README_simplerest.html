@@ -159,7 +159,8 @@ sense than if the module and the package had the same name: "python -m
 simplerest.simplerest"
 
 Check:
-python setup.py sdist
+    python setup.py sdist
+    python3 setup.py install --user
 Yep seems to work.
 
 ================================
@@ -189,7 +190,7 @@ python -m simplerest.server
 /usr/bin/python: No module named simplerest
 
 # install into ~/.local with no sudo
-pip install --user git+https://github.com/michaelbrownid/simplerest.git
+pip install --user git+https://github.com/michaelbrownid/simplerest.git --upgrade
 
 Collecting git+https://github.com/michaelbrownid/simplerest.git
   Cloning https://github.com/michaelbrownid/simplerest.git to /tmp/pip-10WZ0d-build

@@ -80,6 +80,7 @@ TODO: Not sure the best solution with all the code copy/paste. Multiple inherita
             self.inrequest.send_error(404, "File not found")
             return None
         self.inrequest.send_response(200)
+        self.inrequest.send_header("X-Frame-Options", "GOFORIT") # iframe embed fix. doesn't seem to work
         self.inrequest.send_header("Access-Control-Allow-Origin", "*") # CORS for cross-origin xhr if needed
         self.inrequest.send_header("Content-type", ctype)
         fs = os.fstat(f.fileno())
