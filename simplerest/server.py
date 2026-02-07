@@ -439,7 +439,21 @@ cross site return CORS"""
 ################################
 #    https://stackoverflow.com/questions/18444395/basehttprequesthandler-with-custom-instance
 
-
+#TODO: does this work? Seems cleaner
+# class RestIgnoreHandler(RestHandler):
+#     ignoretoplevel = "NA"
+#     def handleRequest(self):
+#         if RestIgnoreHandler.ignoretoplevel is not "NA": # todo special string!
+#             ff = self.path.split("/")
+#             if ff[1]==RestIgnoreHandler.ignoretoplevel:
+#                 print("ignoretoplevel")
+#                 self.path = "/"+"/".join(ff[2:])
+#         super().handleRequest()
+# import XXXX
+# XXXX.RestIgnoreHandler.ignoretoplevel = "toIgnore"
+# server = ThreadedHTTPServer((args["host"], args["port"]), RestIgnoreHandler)
+# server.serve_forever()
+    
 class restIgnoreHTTPServer:
     def __init__(self, host, port, ignoretoplevel, myhandler):
         #print("restIgnoreHTTPSever init",args, ignoretoplevel, myhandler)
